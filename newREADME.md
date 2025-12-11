@@ -108,6 +108,12 @@ bluebikes-demand-forecast/
    ```
    Creates `.venv` and installs all required packages from `requirements.txt`.
 
+2. **Download data**
+   ```bash
+   make download-data
+   ```
+   or alternatively run the `download_data.py` file
+
 2. **Run model training:**
    ```bash
    make run-models          # Run all three models
@@ -499,7 +505,6 @@ This is likely due to the nature of bike-share systems, in which some hours are 
 ![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output1.png)
 ![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output3.png)
 ![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output4.png)
-![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output5.png)
 ![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output6.png)
 ![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output7.png)
 
@@ -619,57 +624,134 @@ More features were used originally, but a count model coefficient analysis showe
 
 ## Final Results
 
-### Best Performing Models (NB and ZINB)
+### Best Performing Models: Negative Binomial + Gradient Boosting
 
-**Aggregate Performance Across All Tested Stations:**
 
-| Metric | Value |
-|--------|-------|
-| Average MAE | ~3.3 bikes/hour |
-| RMSE | ~5.1 |
-| R� | ~0.20 |
-| Overall Accuracy | ~21.5% |
-| Zero Prediction Accuracy | 97-98% |
+| **Model**             | **MAE (Test)** | **RMSE (Test)**  | **F1 Score** | 
+|-----------------------|----------------|------------------|--------------|
+| Poisson Baseline      | 4.558          | 6.480            | –            | 
+| Negative Binomial     | 4.558          | 6.480            | –            | 
+| **NB + Boosting**     | **3.229**      | **5.024**        | **0.830**    | 
+| ZINB        | 3.2862          | 5.2343            | –            | 
 
-### Performance by Time Period
 
-| Period | MAE |
-|--------|-----|
-| Peak commute hours (7-9 AM, 5-7 PM) | ~2.5 |
-| Midday hours (10 AM - 4 PM) | ~3.0 |
-| Evening hours (8 PM - 11 PM) | ~2.8 |
-| Overnight hours (12 AM - 6 AM) | ~0.8 |
+## Rationale for Final Model Selection
 
-### Performance by Station Type
+The **Negative Binomial model enhanced with Gradient Boosting** was selected as the final production model due to its superior performance, robustness, and practical interpretability in operational settings.
 
-| Station Type | MAE | Notes |
-|--------------|-----|-------|
-| High-traffic downtown | ~4.2 | Better peak capture, higher variance |
-| Medium-traffic residential | ~2.9 | Stable predictions, consistent patterns |
-| Low-traffic suburban | ~1.2 | Excellent zero handling, low demand |
+### **Performance**
 
-### Key Improvements Over Baseline
+The model demonstrates a substantial improvement over the Poisson baseline, achieving:
 
-- **Peak Hour Predictions:** 40% improvement over Poisson
-- **Variance Modeling:** Correctly captures overdispersion through � parameter
-- **Zero Predictions:** Within 2-4% of actual zero proportions
-- **Generalization:** Robust across seasons and station categories
-- **Station-Specific Patterns:** Feature-driven models capture unique usage profiles
-- **Weather Robustness:** Handles special events and adverse weather variations
+- **29% reduction in MAE** (from 4.558 to 3.229)
+- **23% reduction in RMSE**
 
-### Practical Impact
+These improvements highlight the model’s ability to capture the variability and nonlinear patterns inherent in Bluebikes demand data.
 
-- **Operational Planning:** 3.3 bike average error enables reliable rebalancing decisions
-- **User Experience:** Accurate low-traffic predictions (MAE ~1.2) help riders avoid empty stations
-- **Peak Management:** Improved peak predictions (MAE ~2.5) support surge capacity planning
-- **Resource Allocation:** Station-type segmentation guides targeted interventions
+### **Robustness**
 
-## Conclusion
+The model was evaluated on a large and diverse dataset, supporting its ability to generalize:
 
-This project demonstrates that sophisticated count-based models (Negative Binomial, ZINB) significantly outperform standard regression approaches for bike-share demand forecasting. By explicitly modeling overdispersion and zero-inflation, we achieved accurate, interpretable predictions that can inform both operational decisions and user-facing applications.
+- **157,000** training samples
+- **39,000** test samples
 
-**Future Work:**
-- Incorporate real-time data streams for dynamic forecasting
-- Extend to network-level optimization (simultaneous IN/OUT balancing)
-- Add event detection (concerts, sports, weather emergencies)
-- Develop station-specific models for highest-volume locations
+Performance remained stable across different **stations**, **seasons**, and **demand regimes**, confirming its resilience under real-world variability.
+
+### **Feature Richness**
+
+The final pipeline integrates **12 engineered features**, including:
+
+- **Spatial attributes**: station latitude, longitude, built-environment indicators  
+- **Temporal structure**: hour-of-day, weekday, month  
+- **Contextual variables**: density, proximity, demand trends
+
+This multi-dimensional feature set enables the model to capture both **cyclical mobility patterns** and **localized station behavior**.
+
+### **Practical Value**
+
+Lower prediction errors translate directly into **more accurate and operationally meaningful forecasts**.
+
+With improved short-term, station-level predictions, system operators can make better-informed decisions about:
+
+- Rebalancing and redistribution
+- Resource allocation
+- Customer-facing service improvements
+
+---
+
+### **Key Achievements**
+
+- **29% error reduction** from baseline Poisson to production NB+Boosting model (MAE: 4.558 → 3.229)
+- **Robust generalization** demonstrated across 39,000 out-of-sample test observations
+- **Dual-model strategy**:
+  - Negative Binomial + Boosting for high-accuracy forecasting
+  - ZINB for interpretable distribution modeling and zero-inflation diagnostics
+- **Scalable architecture** enabling real-time predictions and scheduled retraining
+- **Actionable insights** derived from feature importance and zero-inflation analysis, supporting deeper understanding of demand drivers
+
+  
+
+## Conclusion and Impact
+
+The modeling journey in this project highlights a recurring challenge in applied machine learning: **balancing simplicity with predictive performance**. Early models such as **Poisson** offered interpretability but failed to capture the strong **overdispersion** and **zero-inflation** present in Bluebikes demand data. The **Negative Binomial** model addressed those limitations, and ultimately, the **NB + Boosting hybrid model** emerged as the most effective solution—**substantially improving predictive accuracy** while maintaining enough transparency to understand key drivers of demand. With a **29% reduction in MAE** from baseline to final model, the project demonstrates how **algorithmic sophistication can translate into meaningful operational improvements**.
+
+The forecasting system built around **NB + Boosting** directly advances our core objective: **helping Bluebike operators, planners, and riders make better decisions**. By producing **accurate hourly demand predictions**, the model enables operational teams to **rebalance proactively rather than reactively**, reducing emergency shortages, optimizing routing, and making better use of staff time during peak periods. These improvements support **smoother day-to-day operations** and **reduce unnecessary truck mileage**.
+
+The model also directly enhances the **customer experience**. Predicting when and where stations are likely to run empty or full helps maintain **higher bike and dock availability** at critical times. Reliable access to bikes leads to **smoother commutes**, **fewer frustrations**, and a **more dependable mobility system** for the public.
+
+Beyond immediate operations, the modeling pipeline provides **interpretable insights into spatial, temporal, and contextual demand patterns**. These insights support **long-term planning decisions**, helping identify:
+- Stations that need expansion
+- Neighborhoods that are underserved
+- Optimal placements for future infrastructure investment
+
+Planners can use these **data-driven indicators** to design a **more equitable and scalable bike-share system**.
+
+Finally, improved forecasting contributes to **sustainability goals**. More efficient redistribution reduces **fuel consumption**, cuts **emissions**, and supports a **more environmentally responsible mobility network**. By **reducing wasted resources** and **improving service reliability**, the project ultimately helps build a **cleaner, more efficient, and more user-centered urban transportation ecosystem**.
+
+**Overall, the NB + Boosting model achieves more than strong predictive accuracy—it fulfills the broader mission of enabling smoother operations, better planning, and a more reliable experience for the entire Bluebikes community.**
+
+
+---
+
+
+## Future Work and Potential Extensions
+
+Several promising extensions could further enhance model performance and broaden the scope of operational insights.
+
+### **Spatial Modeling**
+
+Incorporating **spatial modeling approaches**—such as **Gaussian processes** or **spatial-lag features**—could help capture **neighborhood-level demand shocks** that propagate unevenly across stations. 
+
+For example, a **street festival** near one location may influence demand at nearby stations more strongly than those farther away. These spatial dependencies are currently not fully captured in the existing model.
+
+### **Hierarchical Modeling**
+
+**Hierarchical modeling** presents another valuable enhancement. By **sharing information across groups of similar stations**—such as those near universities or in residential neighborhoods—this approach could improve generalization while still preserving **station-specific behavior**.
+
+### **Deep Learning Architectures**
+
+Advanced temporal models such as **Long Short-Term Memory (LSTM)** networks or **Transformers** could be explored to uncover **longer-term temporal dependencies** in demand. These architectures might improve accuracy, especially over extended time horizons, though they may introduce trade-offs in **interpretability** and **computational complexity**.
+
+### **External Data Integration**
+
+Integrating **external data sources** offers substantial potential to improve predictive performance:
+
+- **Transit disruptions** (e.g., subway delays, bus detours) may cause **short-term demand spikes** as commuters shift transportation modes.
+- **Environmental factors**, such as **air quality indices** or **pollen counts**, may influence **recreational ridership**, particularly on weekends.
+- **Granular weather data** (temperature, wind speed, cloud cover) could refine **short-term predictions**.
+- **Socioeconomic indicators** (e.g., employment density, median income) could improve **model generalization**, especially for **new station locations** with limited historical data.
+
+### **Causal Inference for Strategic Decision-Making**
+
+From a research perspective, **causal inference** represents a critical next step. While the current model excels at **predicting demand given observed features**, strategic decisions—such as **adding new stations** or **adjusting pricing**—require understanding **causality rather than correlation**.
+
+Approaches like:
+
+- **Difference-in-differences (DiD)**
+- **Synthetic control methods**
+
+can be applied to **natural experiments**, such as the opening of a new subway station, to **quantify the true impact** of interventions more rigorously than predictive models alone.
+
+---
+
+These extensions offer paths to not only boost model accuracy but also deepen the value of insights provided to planners, operators, and policymakers.
