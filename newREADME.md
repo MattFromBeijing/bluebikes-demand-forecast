@@ -183,20 +183,41 @@ We implemented a progressive modeling strategy, starting from simple baselines a
 
 ### Model Rationale
 
+Firstly we plot the diagram of in/out data at MIT station per month
+
+![mit_in/out](../bluebikes-demand-forecast/visualizations/02_time_series/mit_hourly_by_month.png)
+
+We realize this might fit in a poisson distribution
+
+Why?
+
 Poisson regression is the natural starting point for count data:
 - Designed specifically for non-negative integer outcomes
 - Computationally efficient and interpretable
 - Standard baseline in transportation demand forecasting
 - Provides coefficients that directly relate features to expected counts
 
-However, Poisson assumes the mean equals the variance (equidispersion), which is frequently violated in real-world count data.
-
 ### Features Used
 
 **Feature Set (12 features):**
-- Temporal: `hour_of_day`, `day_of_week`, `month`, `is_weekend`
-- Spatial: `station_lat`, `station_lng`, `dist_subway_m`, `dist_bus_m`, `dist_university_m`, `dist_business`, `dist_residential`
-- Amenities: `restaurant_count`
+```
+station_features = station_features[[
+    "station_name",
+    "station_lat",
+    "station_lng",
+    "dist_subway_m",
+    "dist_bus_m",
+    "dist_university_m",
+    "dist_business",
+    "dist_residential",
+    "pop_density",
+    "emp_density",
+    "restaurant_count",
+    "restaurant_density",
+]]
+```
+(Feature engineering: check `pipeline/feature_enigneering.ipynb`)
+
 
 ### Data Analysis
 
@@ -207,33 +228,78 @@ However, Poisson assumes the mean equals the variance (equidispersion), which is
 
 ### Code Description
 
-**Feature Engineering:** `pipeline/2024_clean.ipynb` prepares the feature dataset used by both Poisson and Negative Binomial models.
+**Feature Engineering:** `pipeline/feature_enigneering.ipynb` prepares the feature dataset used by both Poisson and Negative Binomial models.
 
 **Implementation:** `pipeline/poisson_with_features.ipynb`
 
-1. **Data Loading:** Load 2024 trip data and station feature CSV (from 2024_clean.ipynb)
+1. **Data Loading:** 
+   - Load 2024 trip data and station feature CSV
+   - Selected staion list:
+      ```
+         "MIT at Mass Ave / Amherst St",
+         "Central Square at Mass Ave / Essex St",
+         "MIT Pacific St at Purrington St",
+         "Harvard Square at Mass Ave / Dunster St",
+         "Boylston St at Massachusetts Ave",
+         "Charles St at Cambridge St",
+         "Forsyth St at Huntington Ave",
+         "Boylston St at Fairfield St",
+         "Christian Science Plaza - Massachusetts Ave at Westland Ave",
+         "MIT Stata Center at Vassar St / Main St"
+      ```
+
 2. **Preprocessing:**
    - Parse timestamps and floor to hourly intervals
    - Aggregate inflow (ended_at) and outflow (started_at) by station-hour
    - Merge with station-level features
    - Handle missing values using median imputation
 3. **Pipeline:**
-   ```python
-   Pipeline([
-       ("imputer", SimpleImputer(strategy="median")),
-       ("scaler", StandardScaler()),
-       ("poisson", PoissonRegressor(alpha=1e-4, max_iter=300))
-   ])
-   ```
-4. **Training:** Fit on inflow counts (IN)
+      ```python
+      Pipeline([
+         ("imputer", SimpleImputer(strategy="median")),
+         ("scaler", StandardScaler()),
+         ("poisson", PoissonRegressor(alpha=1e-4, max_iter=300))
+      ])
+      ```
+4. **Training:** 
+   - Fit on inflow and outflows counts (IN) by combining them together:
+      ```
+      # ---------------------------------------------------------
+      # 1. Extract target variables
+      # ---------------------------------------------------------
+      y_out = panel["out_count"].values   # shape (n_samples,)
+      y_in  = panel["in_count"].values    # shape (n_samples,)
+
+      # ---------------------------------------------------------
+      # 2. Combine out & in into ONE target matrix
+      #    Y[:,0] = out_count
+      #    Y[:,1] = in_count
+      # ---------------------------------------------------------
+      Y = np.column_stack([y_out, y_in])   # shape (n_samples, 2)
+      ```
+   - Chaning learning rate to find **best alpha**:
+
+      ```
+      alphas = [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1, 5]
+
+      for a in alphas:
+
+         clf = Pipeline(steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            ("poisson", PoissonRegressor(alpha=a, max_iter=1000))
+         ])
+      ```
+
+
 5. **Evaluation:** MAE, RMSE on train and test sets
 
-### Results
+### Best Results
 
 | Metric | Train | Test |
 |--------|-------|------|
-| MAE    | 3.231 | 3.229 |
-| RMSE   | 5.105 | 5.024 |
+| MAE    | 4.491 | 4.479 |
+| RMSE   | 6.017 | 5.998 |
 
 **Key Findings:**
 - Test performance nearly identical to training (no overfitting)
@@ -243,21 +309,34 @@ However, Poisson assumes the mean equals the variance (equidispersion), which is
 - Failed to capture the long right tail of demand spikes
 
 **Limitations:**
-- Equidispersion assumption violated (variance far exceeds mean at busy stations)
+- **Equidispersion assumption violated (variance far exceeds mean at busy stations)**
 - Predictions collapsed toward the mean during extreme demand
 - Cannot handle structural zeros (hours that should always be zero)
+
+**Next Step**
+- Calculate Mean and Variance
+   ```
+   vals = pd.Series(y_train_in)
+   print("Mean:", vals.mean())
+   print("Variance:", vals.var())
+
+   Mean: 6.873835786943646
+   Variance: 43.758338103127706
+   ```
+
+Since Poisson assumes the mean equals the variance and Equidispersion assumption violated (variance far exceeds mean at busy stations), we then move to Negative Binomial Regression
+
 
 ## Model 2: Negative Binomial Regression
 
 ### Model Rationale
 
 Negative Binomial (NB) regression addresses the critical limitation of Poisson by introducing a dispersion parameter:
-- **Overdispersion Handling:** Allows variance to exceed mean via � parameter
-- **Flexibility:** Reduces to Poisson when � = 0, generalizes when � > 0
+- **Overdispersion Handling:** Allows variance to exceed mean 
 - **Interpretability:** Maintains GLM framework with interpretable coefficients
 - Widely used in transportation, epidemiology, and demand forecasting where counts fluctuate heavily
 
-The variance in NB is modeled as: **Variance = � + � � ��**
+The variance in NB is modeled as: **Variance = μ + α μ²**
 
 This captures the extra variability observed during:
 - Morning commute peaks (7-9 AM)
@@ -265,18 +344,32 @@ This captures the extra variability observed during:
 - Weekend recreational usage spikes
 - Weather-driven demand surges
 
-### Features Used
+### Features Used(Same as Poisson Attemp)
 
-**Same feature set as Poisson (12 features):**
-- Temporal: `hour_of_day`, `day_of_week`, `month`, `is_weekend`
-- Spatial: `station_lat`, `station_lng`, `dist_subway_m`, `dist_bus_m`, `dist_university_m`, `dist_business`, `dist_residential`
-- Amenities: `restaurant_count`
+**Feature Set (12 features):**
+```
+station_features = station_features[[
+    "station_name",
+    "station_lat",
+    "station_lng",
+    "dist_subway_m",
+    "dist_bus_m",
+    "dist_university_m",
+    "dist_business",
+    "dist_residential",
+    "pop_density",
+    "emp_density",
+    "restaurant_count",
+    "restaurant_density",
+]]
+```
+(Feature engineering: check `pipeline/feature_enigneering.ipynb`)
 
 ### Code Description
 
-**Feature Engineering:** Uses the same feature dataset from `pipeline/2024_clean.ipynb` as Poisson.
+**Feature Engineering:** Uses the same feature dataset from `pipeline/feature_enigneering.ipynb` as Poisson.
 
-**Implementation:** `pipeline/neg_with_features.ipynb`
+**Implementation:** `pipeline/nb_with_boosting.ipynb`
 
 1. **Preprocessing:** Same as Poisson (median imputation + StandardScaler)
 2. **Model:**
@@ -295,17 +388,62 @@ This captures the extra variability observed during:
    ```
 3. **Prediction:** Generate continuous predictions, evaluate against test set
 
-### Results
+- **Results**
 
-| Metric | Value |
-|--------|-------|
-| Overall Accuracy | 21.51% |
-| RMSE | 5.0758 |
-| MAE | 3.2928 |
-| R� | 0.2149 |
-| Mean � (Zero Prob) | 0.2573 |
-| Actual Zero Proportion | 0.2753 |
-| Predicted Zero Proportion | 0.2540 |
+<div align="middle">
+
+| Metric | Train | Test  |
+|--------|--------|--------|
+| MAE    | 4.542  | 4.558  |
+| RMSE   | 6.533  | 6.480  |
+
+</div>
+
+4. **Try Boosting**
+
+-  Why?
+   - 1 There are strong nonlinearities
+   - 2 There are many features or messy interactions
+   - 3 Data is highly overdispersed
+
+```
+y_train_pred = y_train_pred + boost.predict(X_train_imp)
+y_test_pred  = y_test_pred  + boost.predict(X_test_imp)
+```
+
+- **Results**
+
+<div align="middle">
+
+| Metric | Train | Test |
+|--------|-------|------|
+| MAE    | 3.231 | 3.229 |
+| RMSE   | 5.105 | 5.024 |
+
+</div>
+
+- **Confusion Matrix**
+
+      from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
+      # ---- set a threshold to measure how many in/out values bigger or equal to it are predicted correctly ----
+      threshold = 4
+
+      # convert to binary classes
+      y_train_true_bin = (y_train_in >= threshold).astype(int)
+      y_train_pred_bin = (y_train_pred >= threshold).astype(int)
+
+      y_test_true_bin  = (y_test_in >= threshold).astype(int)
+      y_test_pred_bin  = (y_test_pred >= threshold).astype(int)
+
+      
+
+<div align="center">
+
+![nb_confusion_matrix](../bluebikes-demand-forecast/visualizations/04_nb_boosting_model/boosting_confusion_matrix_test.png)
+
+</div>
+
 
 **Performance Improvements Over Poisson:**
 - Better fit at high-demand stations
@@ -317,6 +455,10 @@ This captures the extra variability observed during:
 - Still struggled with **structural zeros** (hours that should always be zero)
 - Could not distinguish between "true zeros" (station inactive) and "occasional zeros" (low demand)
 - Overestimated demand during off-peak hours at suburban stations
+
+
+
+
 
 ## Model 3: Zero-Inflated Negative Binomial (ZINB)
 
