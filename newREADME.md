@@ -185,7 +185,7 @@ We implemented a progressive modeling strategy, starting from simple baselines a
 
 Firstly we plot the diagram of in/out data at MIT station per month
 
-![mit_in/out](../bluebikes-demand-forecast/visualizations/02_time_series/mit_hourly_by_month.png)
+![mit_in/out](visualizations/02_time_series/mit_hourly_by_month.png)
 
 We realize this might fit in a poisson distribution
 
@@ -440,7 +440,7 @@ y_test_pred  = y_test_pred  + boost.predict(X_test_imp)
 
 <div align="center">
 
-![nb_confusion_matrix](../bluebikes-demand-forecast/visualizations/04_nb_boosting_model/boosting_confusion_matrix_test.png)
+![nb_confusion_matrix](visualizations/04_nb_boosting_model/boosting_confusion_matrix_test.png)
 
 </div>
 
