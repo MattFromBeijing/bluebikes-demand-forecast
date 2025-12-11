@@ -352,7 +352,7 @@ This captures the extra variability observed during:
 - Weekend recreational usage spikes
 - Weather-driven demand surges
 
-### Features Used(Same as Poisson Attemp)
+### Features Used( Poisson Attempt)
 
 **Feature Set (12 features):**
    ```
