@@ -404,57 +404,45 @@ This dual-process structure aligns with bike-share behavior patterns and address
 
 ## Final Results
 
-### Best Performing Models (NB and ZINB)
+### Best Performing Models: Negative Binomial + Gradient Boosting
 
-**Aggregate Performance Across All Tested Stations:**
 
-| Metric | Value |
-|--------|-------|
-| Average MAE | ~3.3 bikes/hour |
-| RMSE | ~5.1 |
-| R� | ~0.20 |
-| Overall Accuracy | ~21.5% |
-| Zero Prediction Accuracy | 97-98% |
+| **Model**             | **MAE (Test)** | **RMSE (Test)** | **R^2 (Test)** | **F1 Score** | 
+|-----------------------|----------------|------------------|---------------|--------------|
+| Poisson Baseline      | 4.558          | 6.480            | -0.831        | –            | 
+| Negative Binomial     | 4.558          | 6.480            | -0.831        | –            | 
+| **NB + Boosting**     | **3.229**      | **5.024**        | **-0.831**    | –            | 
+| ZINB        | 4.558          | 6.480            | 0.525         | –            | 
 
-### Performance by Time Period
 
-| Period | MAE |
-|--------|-----|
-| Peak commute hours (7-9 AM, 5-7 PM) | ~2.5 |
-| Midday hours (10 AM - 4 PM) | ~3.0 |
-| Evening hours (8 PM - 11 PM) | ~2.8 |
-| Overnight hours (12 AM - 6 AM) | ~0.8 |
+### **Rationale**
 
-### Performance by Station Type
+- **Performance**  
+  Achieves a **29% reduction in MAE** and a **23% reduction in RMSE** compared to the Poisson baseline.
 
-| Station Type | MAE | Notes |
-|--------------|-----|-------|
-| High-traffic downtown | ~4.2 | Better peak capture, higher variance |
-| Medium-traffic residential | ~2.9 | Stable predictions, consistent patterns |
-| Low-traffic suburban | ~1.2 | Excellent zero handling, low demand |
+- **Robustness**  
+  Evaluated on a large dataset:  
+  - **157,000** training samples  
+  - **39,000** test samples
 
-### Key Improvements Over Baseline
+- **Feature Richness**  
+  Leverages **12 input features** spanning spatial, temporal, and contextual data.
 
-- **Peak Hour Predictions:** 40% improvement over Poisson
-- **Variance Modeling:** Correctly captures overdispersion through � parameter
-- **Zero Predictions:** Within 2-4% of actual zero proportions
-- **Generalization:** Robust across seasons and station categories
-- **Station-Specific Patterns:** Feature-driven models capture unique usage profiles
-- **Weather Robustness:** Handles special events and adverse weather variations
+- **Practical Value**  
+  Lower prediction errors lead to **more accurate and actionable operational decisions**.
 
-### Practical Impact
-
-- **Operational Planning:** 3.3 bike average error enables reliable rebalancing decisions
-- **User Experience:** Accurate low-traffic predictions (MAE ~1.2) help riders avoid empty stations
-- **Peak Management:** Improved peak predictions (MAE ~2.5) support surge capacity planning
-- **Resource Allocation:** Station-type segmentation guides targeted interventions
+  
 
 ## Conclusion
 
-This project demonstrates that sophisticated count-based models (Negative Binomial, ZINB) significantly outperform standard regression approaches for bike-share demand forecasting. By explicitly modeling overdispersion and zero-inflation, we achieved accurate, interpretable predictions that can inform both operational decisions and user-facing applications.
+This modeling journey illustrates a fundamental tension in applied machine learning: the tradeoff between predictive power and interpretability. Our Poisson baseline achieved respectable performance with maximum simplicity. The NB+Boosting hybrid pushed predictive accuracy substantially higher through algorithmic sophistication. The ZINB model sacrificed some performance for theoretical coherence and domain-specific insights.
+For BlueBikes operational forecasting, we recommend the pragmatic choice: deploy NB+Boosting for day-to-day predictions while maintaining ZINB models for strategic analysis and explanation. This dual approach recognizes that different stakeholders need different things from models—operations teams need accurate forecasts, while planners and executives need interpretable insights. By maintaining both, we serve the full spectrum of organizational decision-making.
+The 29% error reduction from baseline to final model represents meaningful real-world impact. More accurate forecasts translate to better bike availability for customers, more efficient rebalancing operations for the company, and potentially reduced vehicle emissions from optimized logistics. As cities increasingly embrace micro-mobility solutions, sophisticated demand modeling becomes essential infrastructure—not just for operational efficiency, but for the broader goal of sustainable urban transportation.
 
-**Future Work:**
-- Incorporate real-time data streams for dynamic forecasting
-- Extend to network-level optimization (simultaneous IN/OUT balancing)
-- Add event detection (concerts, sports, weather emergencies)
-- Develop station-specific models for highest-volume locations
+---
+
+## Future Directions
+
+Several promising extensions could further enhance model performance. Spatial modeling through Gaussian processes or spatial lag features might capture neighborhood-level demand shocks—a street festival near one station affects nearby stations differently than distant ones. Hierarchical modeling could share information across similar stations (all near universities, all residential) while maintaining station-specific predictions. Deep learning approaches like LSTMs or Transformers could potentially uncover longer-term dependencies, though at the cost of interpretability and computational complexity.
+External data integration offers another frontier. Real-time transit disruption feeds (subway delays, bus detours) likely cause demand shifts as commuters switch modes. Air quality indices and pollen counts might influence recreational cycling on weekends. Granular weather (temperature, wind speed, cloud cover) beyond simple rain/no-rain could refine predictions. Socioeconomic data overlays (employment centers, residential density, income) could help generalize the model to new station locations without extensive history.
+From a research perspective, causal inference deserves attention. Our current models predict demand given features, but for strategic interventions (adding new stations, adjusting pricing), we need causal estimates: how much additional demand would a new transit connection generate? Techniques like difference-in-differences or synthetic controls, applied to natural experiments (e.g., a new subway station opening), could quantify treatment effects more rigorously than pure prediction models.
