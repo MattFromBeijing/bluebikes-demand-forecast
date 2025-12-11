@@ -2,7 +2,7 @@
 
 **Team:** Matthew Yan · Jiayong Tu · Fenglin Hu · Mingyu Shen </br>
 **Course:** CS 506 </br>
-**Video Link:** https://youtu.be/buNaUpdewR0</br>
+**Video Link:** https://youtu.be/cvkJ39ASlKQ</br>
 **Website Link:** https://bluebikes-demand-forecast.vercel.app/
 
 ---
