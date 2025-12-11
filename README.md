@@ -180,7 +180,7 @@ Across all models, we engineered a comprehensive set of features from raw trip d
 These capture short-term momentum and autocorrelation in demand.
 
 #### Weather Features
-- `avg_temp`: Average temperature (�F)
+- `avg_temp`: Average temperature
 - `precipitation`: Precipitation amount (inches)
 
 ### Model Development
@@ -513,12 +513,12 @@ ZINB explicitly models this two-process data generation.
 **Theoretical Motivation:**
 
 ZINB combines:
-- **Logistic Regression** (predicts probability � of structural zero)
-- **Negative Binomial** (predicts count � when station is active)
+- **Logistic Regression** (predicts probability of structural zero)
+- **Negative Binomial** (predicts count μ when station is active)
 
 For each observation:
-- With probability **�**: y = 0 (structural zero)
-- With probability **(1 - �)**: y ~ NegativeBinomial(�, �)
+- With probability **pi**: y = 0 (structural zero)
+- With probability **(1 - π)**: y ~ NegativeBinomial(r, p)
 
 This dual-process structure aligns with bike-share behavior patterns and addresses both overdispersion AND excess zeros.
 
@@ -552,8 +552,8 @@ More features were used originally, but a count model coefficient analysis showe
 **Visualizations Created:**
 - Actual vs. Predicted scatter plots for IN/OUT
 - Residual plots to check model assumptions
-- Distribution of zero-inflation probability (�)
-- Distribution of NB mean (�)
+- Distribution of zero-inflation probability
+- Distribution of NB mean
 - Coefficient comparison across features
 - Zero proportion comparisons (actual vs. predicted) -->
 
@@ -602,7 +602,7 @@ More features were used originally, but a count model coefficient analysis showe
    ```
 
 5. **Results analysis**
-- Computes standard evaluation metrics (MAE, RMSE, R²)
+- Computes standard evaluation metrics (MAE, RMSE)
 - Produces diagnostic visualizations and tables: predicted vs actual scatter plots, residual plots, zero-proportion comparisons, coefficient tables for the count and inflation components, and distributions of `mu` and `pi` for model inspection and reporting.
    
 ### Results
