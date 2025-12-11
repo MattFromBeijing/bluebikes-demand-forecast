@@ -1,21 +1,11 @@
 # Bluebikes Demand Forecasting
-# [Project Name]
 
-**Team:** Matthew Yan · Jiayong Tu · Fenglin Hu · Mingyu Shen
-**Course:** CS 506
-**Video Link:**
+**Team:** Matthew Yan · Jiayong Tu · Fenglin Hu · Mingyu Shen </br>
+**Course:** CS 506 </br>
+**Video Link:** </br>
 **Website Link:** https://bluebikes-demand-forecast.vercel.app/
 
 ---
-
-## Project Description
-
-**Team:** Matthew Yan · Jiayong Tu · Fenglin Hu · Mingyu Shen 
-**Course:** CS506
-**Video Link:** [Insert link]
-
-## How to build and run
-
 
 ## Project Description
 
@@ -38,31 +28,68 @@ The challenge lies in the unique characteristics of bike-share data: extreme var
 ```
 bluebikes-demand-forecast/
 ├── pipeline/                          # Data processing and modeling notebooks
-│   ├── 2024_clean.ipynb               # Feature engineering for Poisson & NB models
+│   ├── data_clean_and_feature.ipynb   # Feature engineering for Poisson & NB models
 │   ├── poisson_with_features.ipynb    # Poisson regression baseline model
 │   ├── neg_with_features.ipynb        # Negative Binomial regression model
-│   └── ZINB_with_feature.ipynb        # Zero-Inflated Negative Binomial model (with separate feature engineering)
+│   ├── nb_with_boosting.ipynb         # Negative Binomial with boosting model
+│   ├── ZINB_with_feature.ipynb        # Zero-Inflated Negative Binomial model
+│   └── archive/                       # Archived scripts and notebooks
 ├── flask/                             # Backend API
-│   └── app.py                         # Flask application serving predictions
-├── nextjs/                            # Frontend web application
-│   ├── src/
-│   └── package.json
-├── data/                              # Data directory (not in repo)
-│   ├── 2024_data/                     # 2024 trip data
-│   └── feature.csv                    # Station feature data
-├── 2023_data/                         # 2023 training data
-│   ├── Bluebikes/                     # Trip data
-│   ├── Weather/                       # Weather data
-│   └── Transformed/                   # Processed output
-├── mbta_stations/                     # MBTA station location data
-│   ├── Rapid_Transit_Stops.csv
-│   ├── Commuter_Rail_Stops.csv
-│   ├── Bus_Stops.csv
-│   └── Universities.csv
-├── Makefile                           # Build automation
+│   ├── app.py                         # Flask application serving predictions
+│   ├── simulate_model.py              # Model simulation for API
+│   ├── requirement.txt                # Flask dependencies
+│   ├── test.py                        # Testing scripts
+│   └── testagain.py                   # Additional testing scripts
+├── nextjs/                            # Frontend web application (Next.js)
+│   ├── app/                           # Next.js App Router
+│   │   ├── api/                       # API routes
+│   │   ├── map/                       # Map visualization page
+│   │   ├── visualizations/            # Visualizations page
+│   │   └── page.tsx                   # Home page
+│   ├── components/                    # React components
+│   │   ├── ui/                        # UI components (buttons, cards, etc.)
+│   │   ├── bike-map.tsx               # Interactive bike station map
+│   │   └── visualizations/            # Visualization components
+│   ├── lib/                           # Utility libraries
+│   │   ├── types.ts                   # TypeScript type definitions
+│   │   ├── target-stations.ts         # Station data
+│   │   └── visualizations-data.ts     # Visualization metadata
+│   ├── public/                        # Static assets
+│   │   ├── 01_data_exploration/       # Data exploration visualizations
+│   │   ├── 02_time_series/            # Time series visualizations
+│   │   ├── 03_poisson_model/          # Poisson model results
+│   │   ├── 04_nb_boosting_model/      # NB boosting model results
+│   │   └── 05_zinb_model/             # ZINB model results
+│   └── package.json                   # Node.js dependencies
+├── visualizations/                    # Root-level visualization outputs
+│   ├── 01_data_exploration/           # Data exploration charts
+│   │   ├── global_distribution.png
+│   │   └── station_distributions/     # Per-station distribution plots
+│   ├── 02_time_series/                # Time series analysis
+│   │   ├── mit_hour_of_day.png
+│   │   ├── mit_hourly_by_month.png
+│   │   └── monthly/                   # Monthly breakdown plots
+│   ├── 03_poisson_model/              # Poisson model evaluation
+│   ├── 04_nb_boosting_model/          # NB boosting model evaluation
+│   ├── 05_zinb_model/                 # ZINB model evaluation
+│   └── *.md                           # Documentation files
+├── data/                              # Data directory (not in repo, created by download_dataset.py)
+│   ├── 2024_data/                     # 2024 Bluebikes trip data (12 monthly CSV files)
+│   └── 2023_data/                     # 2023 training data
+│       ├── Bluebikes/                 # 2023 trip data (12 monthly CSV files)
+│       ├── Weather/                   # Weather data CSV files
+│       └── Features/                  # Station feature data (MBTA stops, etc.)
+├── .github/                           # GitHub configuration
+│   └── workflows/
+│       └── ci.yml                     # CI/CD workflow
+├── download_dataset.py                # Script to download data from Hugging Face
+├── Makefile                           # Build automation and commands
 ├── requirements.txt                   # Python dependencies
-└── README.md
+├── .gitignore                         # Git ignore rules
+└── README.md                          # This file
 ```
+
+**Note:** The `data/` directory is not included in the repository. Use `make download-data` or run `download_dataset.py` to download and organize the dataset from Hugging Face.
 
 ---
 
@@ -80,6 +107,12 @@ bluebikes-demand-forecast/
    make install
    ```
    Creates `.venv` and installs all required packages from `requirements.txt`.
+
+2. **Download data**
+   ```bash
+   make download-data
+   ```
+   or alternatively run the `download_data.py` file
 
 2. **Run model training:**
    ```bash
@@ -114,51 +147,57 @@ bluebikes-demand-forecast/
 
 ### Feature Engineering
 
-We engineered a comprehensive set of features from raw trip data to capture temporal, spatial, and operational patterns. All features were standardized and scaled before model training.
+Across all models, we engineered a comprehensive set of features from raw trip data to capture temporal, spatial, and operational patterns. Not all features were used in each model training process.
 
 #### Temporal Features
+- `month` (1-12): Month of the year to capture seasonal patterns
 - `hour_of_day` (0-23): Hour when the observation period starts
 - `day_of_week` (0-6): Day of week (0=Monday, 6=Sunday)
-- `month` (1-12): Month of the year to capture seasonal patterns
 - `is_weekend` (0/1): Binary indicator for Saturday/Sunday
 - `start_hour`, `end_hour`: Hour boundaries of the observation window
 - `is_night` (0/1): Nighttime indicator (10pm-5am) for structural zero modeling
 
 #### Spatial Features (Station-Level)
 - `station_lat`, `station_lng`: Geographic coordinates
-- `dist_subway_m`: Distance to nearest subway/commuter rail station (meters)
-- `dist_bus_m`: Distance to nearest bus stop (meters)
-- `dist_university_m`: Distance to nearest university (meters)
-- `dist_business`: Distance to nearest business district
-- `dist_residential`: Distance to nearest residential area
+- `subway_distance_m`: Distance to nearest subway/commuter rail station (meters)
+- `bus_distance_m`: Distance to nearest bus stop (meters)
+- `university_distance_m`: Distance to nearest university (meters)
 - `mbta_stops_250m`: Count of MBTA stations within 250m radius
 - `bus_stops_250m`: Count of bus stops within 250m radius
-- `restaurant_count`, `restaurant_density`: Nearby amenities
+- `restaurant_count`: 
+- `restaurant_count`: Count of nearby restaurants (within the station buffer)
+- `dist_business`: Distance to nearest commercial/business district (meters)
+- `dist_residential`: Distance to nearest residential-area centroid (meters)
+- `pop_density`: Local population density (people per sq. km) around the station
+- `emp_density`: Local employment density (jobs per sq. km) around the station
+- `restaurant_density`: Number of restaurants per sq. km (local restaurant concentration)
 
 #### Lag Features (Time-Series)
 - `last_hour_in`, `last_hour_out`: Previous hour's inflow/outflow
-- `last_two_hour_in`, `last_two_hour_out`: 2-hour lag
-- `last_three_hour_in`, `last_three_hour_out`: 3-hour lag
+- `last_two_hour_in`, `last_two_hour_out`: 2-hour lag inflow/outflow
+- `last_three_hour_in`, `last_three_hour_out`: 3-hour lag inflow/outflow
 
 These capture short-term momentum and autocorrelation in demand.
 
 #### Weather Features
-- `avg_temp`: Average temperature (°F)
+- `avg_temp`: Average temperature (�F)
 - `precipitation`: Precipitation amount (inches)
-
-Weather significantly impacts ridership, especially during adverse conditions.
-
----
 
 ### Model Development
 
 We implemented a progressive modeling strategy, starting from simple baselines and advancing to sophisticated count models that explicitly handle overdispersion and zero-inflation.
 
----
-
 ## Model 1: Poisson Regression (Baseline)
 
 ### Model Rationale
+
+Firstly we plot the diagram of in/out data at MIT station per month
+
+![mit_in/out](visualizations/02_time_series/mit_hourly_by_month.png)
+
+We realize this might fit in a poisson distribution
+
+Why?
 
 Poisson regression is the natural starting point for count data:
 - Designed specifically for non-negative integer outcomes
@@ -166,14 +205,27 @@ Poisson regression is the natural starting point for count data:
 - Standard baseline in transportation demand forecasting
 - Provides coefficients that directly relate features to expected counts
 
-However, Poisson assumes the mean equals the variance (equidispersion), which is frequently violated in real-world count data.
-
 ### Features Used
 
 **Feature Set (12 features):**
-- Temporal: `hour_of_day`, `day_of_week`, `month`, `is_weekend`
-- Spatial: `station_lat`, `station_lng`, `dist_subway_m`, `dist_bus_m`, `dist_university_m`, `dist_business`, `dist_residential`
-- Amenities: `restaurant_count`
+```
+station_features = station_features[[
+    "station_name",
+    "station_lat",
+    "station_lng",
+    "dist_subway_m",
+    "dist_bus_m",
+    "dist_university_m",
+    "dist_business",
+    "dist_residential",
+    "pop_density",
+    "emp_density",
+    "restaurant_count",
+    "restaurant_density",
+]]
+```
+(Feature engineering: check `pipeline/feature_enigneering.ipynb`)
+
 
 ### Data Analysis
 
@@ -184,33 +236,78 @@ However, Poisson assumes the mean equals the variance (equidispersion), which is
 
 ### Code Description
 
-**Feature Engineering:** `pipeline/2024_clean.ipynb` prepares the feature dataset used by both Poisson and Negative Binomial models.
+**Feature Engineering:** `pipeline/feature_enigneering.ipynb` prepares the feature dataset used by both Poisson and Negative Binomial models.
 
 **Implementation:** `pipeline/poisson_with_features.ipynb`
 
-1. **Data Loading:** Load 2024 trip data and station feature CSV (from 2024_clean.ipynb)
+1. **Data Loading:** 
+   - Load 2024 trip data and station feature CSV
+   - Selected staion list:
+      ```
+         "MIT at Mass Ave / Amherst St",
+         "Central Square at Mass Ave / Essex St",
+         "MIT Pacific St at Purrington St",
+         "Harvard Square at Mass Ave / Dunster St",
+         "Boylston St at Massachusetts Ave",
+         "Charles St at Cambridge St",
+         "Forsyth St at Huntington Ave",
+         "Boylston St at Fairfield St",
+         "Christian Science Plaza - Massachusetts Ave at Westland Ave",
+         "MIT Stata Center at Vassar St / Main St"
+      ```
+
 2. **Preprocessing:**
    - Parse timestamps and floor to hourly intervals
    - Aggregate inflow (ended_at) and outflow (started_at) by station-hour
    - Merge with station-level features
    - Handle missing values using median imputation
 3. **Pipeline:**
-   ```python
-   Pipeline([
-       ("imputer", SimpleImputer(strategy="median")),
-       ("scaler", StandardScaler()),
-       ("poisson", PoissonRegressor(alpha=1e-4, max_iter=300))
-   ])
-   ```
-4. **Training:** Fit on inflow counts (IN)
+      ```python
+      Pipeline([
+         ("imputer", SimpleImputer(strategy="median")),
+         ("scaler", StandardScaler()),
+         ("poisson", PoissonRegressor(alpha=1e-4, max_iter=300))
+      ])
+      ```
+4. **Training:** 
+   - Fit on inflow and outflows counts (IN) by combining them together:
+      ```
+      # ---------------------------------------------------------
+      # 1. Extract target variables
+      # ---------------------------------------------------------
+      y_out = panel["out_count"].values   # shape (n_samples,)
+      y_in  = panel["in_count"].values    # shape (n_samples,)
+
+      # ---------------------------------------------------------
+      # 2. Combine out & in into ONE target matrix
+      #    Y[:,0] = out_count
+      #    Y[:,1] = in_count
+      # ---------------------------------------------------------
+      Y = np.column_stack([y_out, y_in])   # shape (n_samples, 2)
+      ```
+   - Chaning learning rate to find **best alpha**:
+
+      ```
+      alphas = [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1, 5]
+
+      for a in alphas:
+
+         clf = Pipeline(steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            ("poisson", PoissonRegressor(alpha=a, max_iter=1000))
+         ])
+      ```
+
+
 5. **Evaluation:** MAE, RMSE on train and test sets
 
-### Results
+### Best Results
 
 | Metric | Train | Test |
 |--------|-------|------|
-| MAE    | 3.231 | 3.229 |
-| RMSE   | 5.105 | 5.024 |
+| MAE    | 4.491 | 4.479 |
+| RMSE   | 6.017 | 5.998 |
 
 **Key Findings:**
 - Test performance nearly identical to training (no overfitting)
@@ -220,23 +317,34 @@ However, Poisson assumes the mean equals the variance (equidispersion), which is
 - Failed to capture the long right tail of demand spikes
 
 **Limitations:**
-- Equidispersion assumption violated (variance far exceeds mean at busy stations)
+- **Equidispersion assumption violated (variance far exceeds mean at busy stations)**
 - Predictions collapsed toward the mean during extreme demand
 - Cannot handle structural zeros (hours that should always be zero)
 
----
+**Next Step**
+- Calculate Mean and Variance
+   ```
+   vals = pd.Series(y_train_in)
+   print("Mean:", vals.mean())
+   print("Variance:", vals.var())
+
+   Mean: 6.873835786943646
+   Variance: 43.758338103127706
+   ```
+
+Since Poisson assumes the mean equals the variance and Equidispersion assumption violated (variance far exceeds mean at busy stations), we then move to Negative Binomial Regression
+
 
 ## Model 2: Negative Binomial Regression
 
 ### Model Rationale
 
 Negative Binomial (NB) regression addresses the critical limitation of Poisson by introducing a dispersion parameter:
-- **Overdispersion Handling:** Allows variance to exceed mean via α parameter
-- **Flexibility:** Reduces to Poisson when α = 0, generalizes when α > 0
+- **Overdispersion Handling:** Allows variance to exceed mean 
 - **Interpretability:** Maintains GLM framework with interpretable coefficients
 - Widely used in transportation, epidemiology, and demand forecasting where counts fluctuate heavily
 
-The variance in NB is modeled as: **Variance = μ + α × μ²**
+The variance in NB is modeled as: **Variance = μ + α μ²**
 
 This captures the extra variability observed during:
 - Morning commute peaks (7-9 AM)
@@ -244,18 +352,59 @@ This captures the extra variability observed during:
 - Weekend recreational usage spikes
 - Weather-driven demand surges
 
-### Features Used
+### Features Used(Same as Poisson Attemp)
 
-**Same feature set as Poisson (12 features):**
-- Temporal: `hour_of_day`, `day_of_week`, `month`, `is_weekend`
-- Spatial: `station_lat`, `station_lng`, `dist_subway_m`, `dist_bus_m`, `dist_university_m`, `dist_business`, `dist_residential`
-- Amenities: `restaurant_count`
+**Feature Set (12 features):**
+   ```
+   station_features = station_features[[
+      "station_name",
+      "station_lat",
+      "station_lng",
+      "dist_subway_m",
+      "dist_bus_m",
+      "dist_university_m",
+      "dist_business",
+      "dist_residential",
+      "pop_density",
+      "emp_density",
+      "restaurant_count",
+      "restaurant_density",
+   ]]
+   ```
+(Feature engineering: check `pipeline/feature_enigneering.ipynb`)
 
 ### Code Description
 
-**Feature Engineering:** Uses the same feature dataset from `pipeline/2024_clean.ipynb` as Poisson.
+1. **Data Loading:** 
+   - Load 2024 and 2023 trip data and station feature CSV
+   - Deicide to use more stations as trainning set 
+   - Selected staion list:
+      ```
+         "MIT at Mass Ave / Amherst St",
+         "Central Square at Mass Ave / Essex St",
+         "Harvard Square at Mass Ave/ Dunster",
+         "Ames St at Main St",
+         "MIT Pacific St at Purrington St",
+         "Charles Circle - Charles St at Cambridge St",
+         "MIT Vassar St",
+         "Beacon St at Massachusetts Ave",
+         "Christian Science Plaza - Massachusetts Ave at...",
+         "Boylston St at Massachusetts Ave",
+         "Boylston St at Fairfield St",
+         "South Station - 700 Atlantic Ave",
+         "Forsyth St at Huntington Ave",
+         "Mass Ave at Albany St",
+         "Commonwealth Ave at Agganis Way",
+         "Central Sq Post Office / Cambridge City Hall a...",
+         "Newbury St at Hereford St",
+         "Harvard University River Houses at DeWolfe St ...",
+         "MIT Stata Center at Vassar St / Main St",
+         "Landmark Center - Brookline Ave at Park Dr"
+      ```
 
-**Implementation:** `pipeline/neg_with_features.ipynb`
+**Feature Engineering:** Uses the same feature dataset from `pipeline/feature_enigneering.ipynb` as Poisson.
+
+**Implementation:** `pipeline/nb_with_boosting.ipynb`
 
 1. **Preprocessing:** Same as Poisson (median imputation + StandardScaler)
 2. **Model:**
@@ -274,17 +423,62 @@ This captures the extra variability observed during:
    ```
 3. **Prediction:** Generate continuous predictions, evaluate against test set
 
-### Results
+- **Results**
 
-| Metric | Value |
-|--------|-------|
-| Overall Accuracy | 21.51% |
-| RMSE | 5.0758 |
-| MAE | 3.2928 |
-| R² | 0.2149 |
-| Mean π (Zero Prob) | 0.2573 |
-| Actual Zero Proportion | 0.2753 |
-| Predicted Zero Proportion | 0.2540 |
+<div align="middle">
+
+| Metric | Train | Test  |
+|--------|--------|--------|
+| MAE    | 4.542  | 4.558  |
+| RMSE   | 6.533  | 6.480  |
+
+</div>
+
+4. **Try Boosting**
+
+-  Why?
+   - 1 There are strong nonlinearities
+   - 2 There are many features or messy interactions
+   - 3 Data is highly overdispersed
+
+```
+y_train_pred = y_train_pred + boost.predict(X_train_imp)
+y_test_pred  = y_test_pred  + boost.predict(X_test_imp)
+```
+
+- **Results**
+
+<div align="middle">
+
+| Metric | Train | Test |
+|--------|-------|------|
+| MAE    | 3.231 | 3.229 |
+| RMSE   | 5.105 | 5.024 |
+
+</div>
+
+- **Confusion Matrix**
+
+      from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
+      # ---- set a threshold to measure how many in/out values bigger or equal to it are predicted correctly ----
+      threshold = 4
+
+      # convert to binary classes
+      y_train_true_bin = (y_train_in >= threshold).astype(int)
+      y_train_pred_bin = (y_train_pred >= threshold).astype(int)
+
+      y_test_true_bin  = (y_test_in >= threshold).astype(int)
+      y_test_pred_bin  = (y_test_pred >= threshold).astype(int)
+
+      
+
+<div align="center">
+
+![nb_confusion_matrix](visualizations/04_nb_boosting_model/boosting_confusion_matrix_test.png)
+
+</div>
+
 
 **Performance Improvements Over Poisson:**
 - Better fit at high-demand stations
@@ -297,54 +491,58 @@ This captures the extra variability observed during:
 - Could not distinguish between "true zeros" (station inactive) and "occasional zeros" (low demand)
 - Overestimated demand during off-peak hours at suburban stations
 
----
 
 ## Model 3: Zero-Inflated Negative Binomial (ZINB)
 
 ### Model Rationale
 
-ZINB explicitly models the two-process data generation observed in bike-share systems:
+Examining our data overall, we noticed that a large percentage of in and out values were 0.
 
-1. **Process 1 (Zero-Inflation):** Some hours are structurally zero (station inactive, area dormant)
-   - Examples: 2-4 AM at suburban stations, weekday afternoons at business districts
+![Global distribution of hourly inflow/outflow counts](visualizations/01_data_exploration/global_distribution.png)
 
-2. **Process 2 (Count Model):** When active, demand follows an overdispersed count distribution
+This is likely due to the nature of bike-share systems, in which some hours are structurally zero.
+
+![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output1.png)
+![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output3.png)
+![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output4.png)
+![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output6.png)
+![Distribution of rush hour inflow/outflow counts](visualizations/01_data_exploration/station_rush_hour_distributions/output7.png)
+
+ZINB explicitly models this two-process data generation.
 
 **Theoretical Motivation:**
 
 ZINB combines:
-- **Logistic Regression** (predicts probability π of structural zero)
-- **Negative Binomial** (predicts count μ when station is active)
+- **Logistic Regression** (predicts probability � of structural zero)
+- **Negative Binomial** (predicts count � when station is active)
 
 For each observation:
-- With probability **π**: y = 0 (structural zero)
-- With probability **(1 - π)**: y ~ NegativeBinomial(μ, α)
+- With probability **�**: y = 0 (structural zero)
+- With probability **(1 - �)**: y ~ NegativeBinomial(�, �)
 
 This dual-process structure aligns with bike-share behavior patterns and addresses both overdispersion AND excess zeros.
 
 ### Features Used
 
-**Extended feature set (18 features total):**
-
-**Count Model Features (NB component, predicts μ):**
-- `month`, `start_hour`, `end_hour`
+**Feature set (6 features total):**
+- `month`
+- `start_hour`
+- `end_hour`
 - `bus_distance_m`
-- `last_three_hour_in`, `last_three_hour_out`
+- `last_three_hour_in`
+- `last_three_hour_out`
 
-**Inflation Model Features (predicts π):**
+More features were used originally, but a count model coefficient analysis showed that the above features were the most impactful.
+
+**Inflation Model Features (predicts the liklihood of a structural zero):**
 - `is_night` (strong predictor of structural zeros)
 - `precipitation` (weather-driven inactivity)
 - `avg_temp` (temperature effects on ridership)
 
-**Additional features for context:**
-- All temporal, spatial, and lag features from previous models
-- Weather features: `avg_temp`, `precipitation`
-- Enhanced spatial features: `university_distance_m`, `subway_distance_m`, `bus_distance_m`, `mbta_stops_250m`, `bus_stops_250m`
-
-### Data Analysis
+<!-- ### Data Analysis
 
 **Comprehensive data enrichment pipeline:**
-1. Identified top 20 busiest stations by total activity
+1. Identified 20 busiest stations by total activity
 2. Calculated distances to nearest subway, bus, and university
 3. Counted transit stops within 250m radius
 4. Merged hourly weather data (temperature, precipitation)
@@ -354,33 +552,33 @@ This dual-process structure aligns with bike-share behavior patterns and address
 **Visualizations Created:**
 - Actual vs. Predicted scatter plots for IN/OUT
 - Residual plots to check model assumptions
-- Distribution of zero-inflation probability (π)
-- Distribution of NB mean (μ)
+- Distribution of zero-inflation probability (�)
+- Distribution of NB mean (�)
 - Coefficient comparison across features
-- Zero proportion comparisons (actual vs. predicted)
+- Zero proportion comparisons (actual vs. predicted) -->
 
 ### Code Description
 
 **Implementation:** `pipeline/ZINB_with_feature.ipynb`
 
-1. **Data Extraction:**
-   - Load 2023 trip data (Apr-Dec) from multiple CSVs
-   - Parse mixed timestamp formats
+1. **Data Extraction and analysis:**
+   - Load and parse 2023 trip data (Apr-Dec) from multiple CSVs
+      - January-March data were skipped due to formatting issues
    - Aggregate to hourly station-level IN/OUT counts
    - Create complete time grid (every station × every hour)
+   - Conduct data analysis on the distribution of IN/OUT counts
 
-2. **Feature Engineering:**
-   - Calculate distances to nearest transit using Haversine formula
-   - Count nearby amenities within radius
-   - Merge weather data by date
+3. **Feature Engineering:**
    - Add lag features (1hr, 2hr, 3hr)
+   - Calculate distances to nearest university and MBTA subway and bus station
+   - Merge weather data by date
    - Add nighttime indicator
 
-3. **Model Training:**
+4. **Model Training:**
    ```python
    from statsmodels.discrete.count_model import ZeroInflatedNegativeBinomialP
 
-   # Separate models for OUT and IN
+   # Separate models for OUT and IN (Example only shows OUT)
    zinb_out_model = ZeroInflatedNegativeBinomialP(
        endog=y_out_train,
        exog=X_train_const,      # Count model features
@@ -389,14 +587,24 @@ This dual-process structure aligns with bike-share behavior patterns and address
    )
 
    zinb_out_results = zinb_out_model.fit(method='bfgs', maxiter=1000)
-   ```
 
-4. **Prediction Rule:**
-   ```python
-   # If π > 0.5, predict 0; otherwise use NB mean
+   # Collect Model Predictions for expected value at hour-station
+   y_out_pred_original = zinb_out_results.predict(exog=X_test_const, exog_infl=X_test_infl, which='mean')
+
+   # Collect Model Predictions for probability of a structural zero at hour-station
+   pi_out_pred = zinb_out_results.predict(exog=X_test_const, exog_infl=X_test_infl, which='prob-zero')
+
+   # Collect Model Predictions for expected value at hour-station given non-structural zero
+   mu_out_pred = zinb_out_results.predict(exog=X_test_const, exog_infl=X_test_infl, which='mean-main')
+
+   # If  > 0.5, predict 0; otherwise use NB mean
    y_pred = np.where(pi_pred > 0.5, 0, y_pred_original)
    ```
 
+5. **Results analysis**
+- Computes standard evaluation metrics (MAE, RMSE, R²)
+- Produces diagnostic visualizations and tables: predicted vs actual scatter plots, residual plots, zero-proportion comparisons, coefficient tables for the count and inflation components, and distributions of `mu` and `pi` for model inspection and reporting.
+   
 ### Results
 
 #### OUT Model Performance
@@ -405,312 +613,145 @@ This dual-process structure aligns with bike-share behavior patterns and address
 |--------|-------|
 | RMSE | 5.2343 |
 | MAE | 3.2862 |
-| R² | 0.1983 |
-| Mean π | 0.2574 |
-| Mean μ | 3.8-4.2 |
-| Dispersion α | 5.2905 |
-| Actual Zero Proportion | 0.2796 |
-| Predicted Zero Proportion | 0.2376 |
+
 
 #### IN Model Performance
 
 | Metric | Value |
 |--------|-------|
-| Overall Accuracy | 21.58% |
-| RMSE | ~5.2 |
-| MAE | ~3.3 |
-| R² | ~0.20 |
-
-**Key Insights:**
-
-1. **Zero-Inflation Effectiveness:** π successfully identifies structural zeros (~26% of hours)
-2. **Nighttime Patterns:** `is_night` is highly significant in inflation model (p < 0.001)
-3. **Weather Impact:** Precipitation increases π (more zeros during rain)
-4. **Lag Features:** `last_three_hour_in/out` strong predictors of current demand
-5. **Balanced Predictions:** Predicted zero proportion (23.76%) close to actual (27.96%)
-
-**Feature Importance (Count Model):**
-- `start_hour`: Strongest predictor (commute peaks)
-- `last_three_hour_out`: Captures momentum
-- `bus_distance_m`: Negative coefficient (closer to transit = more demand)
-- `month`: Seasonal variation (summer > winter)
-
----
-
-### Final Model Comparison
-
-- **Riders:** Can avoid empty or full stations before they arrive.  
-- **Planners:** Can identify problem stations and times and act earlier.
-
-### Repository Structure
-
-```
-project-root/
-   data/                   # [Description of data directory]
-      raw/               # [Raw data files]
-      processed/         # [Processed/cleaned data]
-   notebooks/             # [Jupyter notebooks for exploration and modeling]
-   src/                   # [Source code]
-      models/           # [Model implementations]
-      features/         # [Feature engineering scripts]
-      utils/            # [Utility functions]
-   pipeline/              # [Data processing pipeline]
-   tests/                 # [Unit tests]
-   results/               # [Model outputs and results]
-   visualizations/        # [Plots and charts]
-   README.md
-```
-
-[Add notes about key directories and their contents]
-
-## Data Processing and Modeling
-
-### Feature Engineering
-
-[Provide an overview of the feature engineering approach and philosophy]
-
-#### Temporal Features
-- **[Feature 1]**: [Description, e.g., Hour of day (0-23)]
-- **[Feature 2]**: [Description, e.g., Day of week]
-- **[Feature 3]**: [Description]
-- **[Feature 4]**: [Description]
-
-#### [Feature Category 2, e.g., Operational Features]
-- **[Feature 1]**: [Description]
-- **[Feature 2]**: [Description]
-- **[Feature 3]**: [Description]
-
-#### [Feature Category 3, e.g., Spatial Features]
-- **[Feature 1]**: [Description]
-- **[Feature 2]**: [Description]
-- **[Feature 3]**: [Description]
-
-#### [Additional Feature Categories]
-[Add more categories as needed]
-
-**Total Features:** [Number of features used across all models]
-
-## Model Development
-
-### Model 1: [Model Name, e.g., Baseline Linear Regression]
-
-#### Model Rationale
-[Explain why this model was chosen as the starting point or baseline]
-- [Reason 1, e.g., Natural choice for this type of data]
-- [Reason 2, e.g., Provides interpretable coefficients]
-- [Reason 3, e.g., Computationally efficient]
-
-#### Features Used
-[List the specific features used in this model]
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
-[Or note: "All features listed in Feature Engineering section"]
-
-#### Data Analysis and Visualization
-[Describe any exploratory data analysis or visualizations created for this model]
-
-**Visualizations Created:**
-- [Visualization 1, e.g., Distribution of target variable]
-- [Visualization 2, e.g., Correlation heatmap]
-- [Visualization 3, e.g., Feature importance plot]
-
-**Key Findings:**
-- [Finding 1]
-- [Finding 2]
-- [Finding 3]
-
-#### Code Description
-**Location:** `[path/to/notebook or script]`
-
-**Implementation:**
-```python
-# [Brief code snippet showing model implementation]
-```
-
-**Key Steps:**
-1. [Step 1, e.g., Data preprocessing and splitting]
-2. [Step 2, e.g., Feature scaling/transformation]
-3. [Step 3, e.g., Model training]
-4. [Step 4, e.g., Prediction and evaluation]
-
-#### Results
-**Performance Metrics:**
-- **[Metric 1, e.g., MAE]**: [Value]
-- **[Metric 2, e.g., RMSE]**: [Value]
-- **[Metric 3, e.g., R�]**: [Value]
-- **[Metric 4]**: [Value]
-
-**Strengths:**
-- [Strength 1]
-- [Strength 2]
-
-**Limitations:**
-- [Limitation 1]
-- [Limitation 2]
-- [Limitation 3]
-
-**Conclusion:** [Brief summary of what was learned from this model]
-
----
-
-### Model 2: [Model Name]
-
-#### Model Rationale
-[Explain why this model was chosen and how it addresses limitations of previous models]
-- [Reason 1]
-- [Reason 2]
-- [Reason 3]
-
-#### Features Used
-[List features or note if same as previous model]
-
-#### Data Analysis and Visualization
-[Describe any additional analysis specific to this model]
-
-**Visualizations Created:**
-- [Visualization 1]
-- [Visualization 2]
-
-**Key Findings:**
-- [Finding 1]
-- [Finding 2]
-
-#### Code Description
-**Location:** `[path/to/notebook or script]`
-
-**Implementation:**
-```python
-# [Code snippet]
-```
-
-**Key Steps:**
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
-
-#### Results
-**Performance Metrics:**
-- **[Metric 1]**: [Value]
-- **[Metric 2]**: [Value]
-- **[Metric 3]**: [Value]
-
-**Improvements Over Previous Model:**
-- [Improvement 1]
-- [Improvement 2]
-
-**Limitations:**
-- [Limitation 1]
-- [Limitation 2]
-
-**Conclusion:** [Summary]
-
----
-
-### Model 3: [Model Name]
-
-#### Model Rationale
-[Why this model was chosen]
-
-#### Features Used
-[List features]
-
-#### Data Analysis and Visualization
-[Analysis specific to this model]
-
-#### Code Description
-**Location:** `[path]`
-
-**Implementation:**
-```python
-# [Code snippet]
-```
-
-#### Results
-**Performance Metrics:**
-[List metrics and values]
-
-**Analysis:**
-[Strengths, limitations, conclusions]
-
-### [Additional Models]
-
-[Repeat the same structure for each additional model]
-
-## Final Model Comparison
-
-| Model | Strength | Weakness | RMSE | MAE | R² | Use Case |
-|-------|----------|----------|------|-----|----|---------|
-| **Poisson** | Fast, interpretable, simple | Fails with overdispersion, underestimates peaks | 5.024 | 3.229 | Low | Quick baseline only |
-| **Negative Binomial** | Handles overdispersion, excellent performance | Doesn't explicitly model structural zeros | 5.076 | 3.293 | 0.215 | **Primary recommendation** |
-| **ZINB** | Explicitly models zero-inflation, interpretable two-process | Marginally higher RMSE, more complex | 5.234 | 3.286 | 0.198 | Stations with clear inactive periods |
-
-**Why NB and ZINB Perform Similarly:**
-
-1. **Feature Engineering Success:** Our temporal and lag features already capture much of the zero-inflation pattern implicitly
-2. **Conditional Zeros:** Many zeros are conditional on features (hour, weather) rather than purely structural
-3. **Strong Lag Signals:** `last_hour_in/out` effectively predicts when station will be inactive
-4. **Trade-off:** ZINB's additional complexity (2 sub-models) doesn't justify marginal improvements for this dataset
-
-**Recommendation:** Use **Negative Binomial** as the primary model for its excellent balance of performance, interpretability, and simplicity. Use **ZINB** for specific stations with clear inactive periods (e.g., university stations during breaks).
-
----
+| RMSE | 5.0750 |
+| MAE | 3.2928 |
 
 ## Final Results
 
-### Best Performing Models (NB and ZINB)
+### Best Performing Models: Negative Binomial + Gradient Boosting
 
-**Aggregate Performance Across All Tested Stations:**
 
-| Metric | Value |
-|--------|-------|
-| Average MAE | ~3.3 bikes/hour |
-| RMSE | ~5.1 |
-| R² | ~0.20 |
-| Overall Accuracy | ~21.5% |
-| Zero Prediction Accuracy | 97-98% |
+| **Model**             | **MAE (Test)** | **RMSE (Test)**  | **F1 Score** | 
+|-----------------------|----------------|------------------|--------------|
+| Poisson Baseline      | 4.558          | 6.480            | –            | 
+| Negative Binomial     | 4.558          | 6.480            | –            | 
+| **NB + Boosting**     | **3.229**      | **5.024**        | **0.830**    | 
+| ZINB        | 3.2862          | 5.2343            | –            | 
 
-### Performance by Time Period
 
-| Period | MAE |
-|--------|-----|
-| Peak commute hours (7-9 AM, 5-7 PM) | ~2.5 |
-| Midday hours (10 AM - 4 PM) | ~3.0 |
-| Evening hours (8 PM - 11 PM) | ~2.8 |
-| Overnight hours (12 AM - 6 AM) | ~0.8 |
+## Rationale for Final Model Selection
 
-### Performance by Station Type
+The **Negative Binomial model enhanced with Gradient Boosting** was selected as the final production model due to its superior performance, robustness, and practical interpretability in operational settings.
 
-| Station Type | MAE | Notes |
-|--------------|-----|-------|
-| High-traffic downtown | ~4.2 | Better peak capture, higher variance |
-| Medium-traffic residential | ~2.9 | Stable predictions, consistent patterns |
-| Low-traffic suburban | ~1.2 | Excellent zero handling, low demand |
+### **Performance**
 
-### Key Improvements Over Baseline
+The model demonstrates a substantial improvement over the Poisson baseline, achieving:
 
-- **Peak Hour Predictions:** 40% improvement over Poisson
-- **Variance Modeling:** Correctly captures overdispersion through α parameter
-- **Zero Predictions:** Within 2-4% of actual zero proportions
-- **Generalization:** Robust across seasons and station categories
-- **Station-Specific Patterns:** Feature-driven models capture unique usage profiles
-- **Weather Robustness:** Handles special events and adverse weather variations
+- **29% reduction in MAE** (from 4.558 to 3.229)
+- **23% reduction in RMSE**
 
-### Practical Impact
+These improvements highlight the model’s ability to capture the variability and nonlinear patterns inherent in Bluebikes demand data.
 
-- **Operational Planning:** 3.3 bike average error enables reliable rebalancing decisions
-- **User Experience:** Accurate low-traffic predictions (MAE ~1.2) help riders avoid empty stations
-- **Peak Management:** Improved peak predictions (MAE ~2.5) support surge capacity planning
-- **Resource Allocation:** Station-type segmentation guides targeted interventions
+### **Robustness**
+
+The model was evaluated on a large and diverse dataset, supporting its ability to generalize:
+
+- **157,000** training samples
+- **39,000** test samples
+
+Performance remained stable across different **stations**, **seasons**, and **demand regimes**, confirming its resilience under real-world variability.
+
+### **Feature Richness**
+
+The final pipeline integrates **12 engineered features**, including:
+
+- **Spatial attributes**: station latitude, longitude, built-environment indicators  
+- **Temporal structure**: hour-of-day, weekday, month  
+- **Contextual variables**: density, proximity, demand trends
+
+This multi-dimensional feature set enables the model to capture both **cyclical mobility patterns** and **localized station behavior**.
+
+### **Practical Value**
+
+Lower prediction errors translate directly into **more accurate and operationally meaningful forecasts**.
+
+With improved short-term, station-level predictions, system operators can make better-informed decisions about:
+
+- Rebalancing and redistribution
+- Resource allocation
+- Customer-facing service improvements
 
 ---
 
-## Conclusion
+### **Key Achievements**
 
-This project demonstrates that sophisticated count-based models (Negative Binomial, ZINB) significantly outperform standard regression approaches for bike-share demand forecasting. By explicitly modeling overdispersion and zero-inflation, we achieved accurate, interpretable predictions that can inform both operational decisions and user-facing applications.
+- **29% error reduction** from baseline Poisson to production NB+Boosting model (MAE: 4.558 → 3.229)
+- **Robust generalization** demonstrated across 39,000 out-of-sample test observations
+- **Dual-model strategy**:
+  - Negative Binomial + Boosting for high-accuracy forecasting
+  - ZINB for interpretable distribution modeling and zero-inflation diagnostics
+- **Scalable architecture** enabling real-time predictions and scheduled retraining
+- **Actionable insights** derived from feature importance and zero-inflation analysis, supporting deeper understanding of demand drivers
 
-**Future Work:**
-- Incorporate real-time data streams for dynamic forecasting
-- Extend to network-level optimization (simultaneous IN/OUT balancing)
-- Add event detection (concerts, sports, weather emergencies)
-- Develop station-specific models for highest-volume locations
+  
+
+## Conclusion and Impact
+
+The modeling journey in this project highlights a recurring challenge in applied machine learning: **balancing simplicity with predictive performance**. Early models such as **Poisson** offered interpretability but failed to capture the strong **overdispersion** and **zero-inflation** present in Bluebikes demand data. The **Negative Binomial** model addressed those limitations, and ultimately, the **NB + Boosting hybrid model** emerged as the most effective solution—**substantially improving predictive accuracy** while maintaining enough transparency to understand key drivers of demand. With a **29% reduction in MAE** from baseline to final model, the project demonstrates how **algorithmic sophistication can translate into meaningful operational improvements**.
+
+The forecasting system built around **NB + Boosting** directly advances our core objective: **helping Bluebike operators, planners, and riders make better decisions**. By producing **accurate hourly demand predictions**, the model enables operational teams to **rebalance proactively rather than reactively**, reducing emergency shortages, optimizing routing, and making better use of staff time during peak periods. These improvements support **smoother day-to-day operations** and **reduce unnecessary truck mileage**.
+
+The model also directly enhances the **customer experience**. Predicting when and where stations are likely to run empty or full helps maintain **higher bike and dock availability** at critical times. Reliable access to bikes leads to **smoother commutes**, **fewer frustrations**, and a **more dependable mobility system** for the public.
+
+Beyond immediate operations, the modeling pipeline provides **interpretable insights into spatial, temporal, and contextual demand patterns**. These insights support **long-term planning decisions**, helping identify:
+- Stations that need expansion
+- Neighborhoods that are underserved
+- Optimal placements for future infrastructure investment
+
+Planners can use these **data-driven indicators** to design a **more equitable and scalable bike-share system**.
+
+Finally, improved forecasting contributes to **sustainability goals**. More efficient redistribution reduces **fuel consumption**, cuts **emissions**, and supports a **more environmentally responsible mobility network**. By **reducing wasted resources** and **improving service reliability**, the project ultimately helps build a **cleaner, more efficient, and more user-centered urban transportation ecosystem**.
+
+**Overall, the NB + Boosting model achieves more than strong predictive accuracy—it fulfills the broader mission of enabling smoother operations, better planning, and a more reliable experience for the entire Bluebikes community.**
+
+
+---
+
+
+## Future Work and Potential Extensions
+
+Several promising extensions could further enhance model performance and broaden the scope of operational insights.
+
+### **Spatial Modeling**
+
+Incorporating **spatial modeling approaches**—such as **Gaussian processes** or **spatial-lag features**—could help capture **neighborhood-level demand shocks** that propagate unevenly across stations. 
+
+For example, a **street festival** near one location may influence demand at nearby stations more strongly than those farther away. These spatial dependencies are currently not fully captured in the existing model.
+
+### **Hierarchical Modeling**
+
+**Hierarchical modeling** presents another valuable enhancement. By **sharing information across groups of similar stations**—such as those near universities or in residential neighborhoods—this approach could improve generalization while still preserving **station-specific behavior**.
+
+### **Deep Learning Architectures**
+
+Advanced temporal models such as **Long Short-Term Memory (LSTM)** networks or **Transformers** could be explored to uncover **longer-term temporal dependencies** in demand. These architectures might improve accuracy, especially over extended time horizons, though they may introduce trade-offs in **interpretability** and **computational complexity**.
+
+### **External Data Integration**
+
+Integrating **external data sources** offers substantial potential to improve predictive performance:
+
+- **Transit disruptions** (e.g., subway delays, bus detours) may cause **short-term demand spikes** as commuters shift transportation modes.
+- **Environmental factors**, such as **air quality indices** or **pollen counts**, may influence **recreational ridership**, particularly on weekends.
+- **Granular weather data** (temperature, wind speed, cloud cover) could refine **short-term predictions**.
+- **Socioeconomic indicators** (e.g., employment density, median income) could improve **model generalization**, especially for **new station locations** with limited historical data.
+
+### **Causal Inference for Strategic Decision-Making**
+
+From a research perspective, **causal inference** represents a critical next step. While the current model excels at **predicting demand given observed features**, strategic decisions—such as **adding new stations** or **adjusting pricing**—require understanding **causality rather than correlation**.
+
+Approaches like:
+
+- **Difference-in-differences (DiD)**
+- **Synthetic control methods**
+
+can be applied to **natural experiments**, such as the opening of a new subway station, to **quantify the true impact** of interventions more rigorously than predictive models alone.
+
+---
+
+These extensions offer paths to not only boost model accuracy but also deepen the value of insights provided to planners, operators, and policymakers.
